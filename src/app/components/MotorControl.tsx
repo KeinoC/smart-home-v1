@@ -81,7 +81,7 @@ export default function MotorControl() {
           onMouseUp={handleMouseUp}
           onTouchStart={() => handleMouseDown('forward')}
           onTouchEnd={handleMouseUp}
-          className={`px-4 py-2 rounded-lg font-semibold ${
+          className={`p-4 flex items-center justify-center text-center rounded-lg font-semibold ${
             direction === 'forward' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
@@ -94,7 +94,7 @@ export default function MotorControl() {
           onMouseUp={handleMouseUp}
           onTouchStart={() => handleMouseDown('left')}
           onTouchEnd={handleMouseUp}
-          className={`px-4 py-2 rounded-lg font-semibold ${
+          className={`p-4 flex items-center justify-center text-center  rounded-lg font-semibold ${
             direction === 'left' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
@@ -106,7 +106,7 @@ export default function MotorControl() {
           onMouseUp={handleMouseUp}
           onTouchStart={() => handleMouseDown('right')}
           onTouchEnd={handleMouseUp}
-          className={`px-4 py-2 rounded-lg font-semibold ${
+          className={`p-4 flex items-center justify-center text-center rounded-lg font-semibold ${
             direction === 'right' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
@@ -119,7 +119,7 @@ export default function MotorControl() {
           onMouseUp={handleMouseUp}
           onTouchStart={() => handleMouseDown('backward')}
           onTouchEnd={handleMouseUp}
-          className={`px-4 py-2 rounded-lg font-semibold ${
+          className={`p-4 flex items-center justify-center text-center rounded-lg font-semibold ${
             direction === 'backward' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
