@@ -4,9 +4,11 @@ import { useState } from 'react';
 export default function MotorControl() {
   const [direction, setDirection] = useState<string | null>(null);
   const [speed, setSpeed] = useState<number>(255);
+  const [error, setError] = useState<string | null>(null);
 
   const moveMotors = async (command: 'forward' | 'backward' | 'left' | 'right' | 'stop') => {
     setDirection(command);
+    setError(null);
 
     try {
       const esp32IpAddress = process.env.NEXT_PUBLIC_KEINO_BOT_IP;
@@ -24,11 +26,14 @@ export default function MotorControl() {
       }
     } catch (error) {
       console.error('Error connecting to ESP32:', error);
+      setError('Failed to connect to the ESP32. Please check the connection.');
+      setDirection(null); // Reset direction on error
     }
   };
 
   const setMotorSpeed = async (newSpeed: number) => {
     setSpeed(newSpeed);
+    setError(null);
 
     try {
       const esp32IpAddress = process.env.NEXT_PUBLIC_KEINO_BOT_IP;
@@ -46,6 +51,7 @@ export default function MotorControl() {
       }
     } catch (error) {
       console.error('Error connecting to ESP32:', error);
+      setError('Failed to connect to the ESP32. Please check the connection.');
     }
   };
 
@@ -60,6 +66,9 @@ export default function MotorControl() {
   return (
     <div className="flex flex-col items-center p-6 w-full h-full text-4xl bg-gray-100/50 rounded-lg shadow-md space-y-6">
       <h1 className="text-2xl font-bold">Motor Control</h1>
+
+      {error && <p className="text-red-500">{error}</p>}
+
       {/* Speed Slider */}
       <div className="flex flex-col items-center mb-4 w-full">
         <label className="text-lg font-semibold mb-2">Speed: {speed}</label>
@@ -74,7 +83,7 @@ export default function MotorControl() {
       </div>
 
       {/* Directional Buttons */}
-      <div className="grid grid-cols-3 gap-4 ">
+      <div className="grid grid-cols-3 gap-4">
         <div></div>
         <button
           onMouseDown={() => handleMouseDown('forward')}
@@ -94,7 +103,7 @@ export default function MotorControl() {
           onMouseUp={handleMouseUp}
           onTouchStart={() => handleMouseDown('left')}
           onTouchEnd={handleMouseUp}
-          className={`p-4 flex items-center justify-center text-center  rounded-lg font-semibold ${
+          className={`p-4 flex items-center justify-center text-center rounded-lg font-semibold ${
             direction === 'left' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
