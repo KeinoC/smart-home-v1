@@ -1,96 +1,105 @@
 'use client';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Switch } from '@headlessui/react';
+import { realtimeService } from '../services/realtime.service';
+import { motion } from 'framer-motion';
 
-import React, { useState } from 'react';
-import axios from 'axios';
-
-const ESP32_IP = 'http://192.168.1.195'; // Replace with your ESP32's IP address
-
-interface RelayState {
-  status: 'ON' | 'OFF';
-  loading: boolean;
-  error: string | null;
+interface RelayControlProps {
+  relayName: string;
+  relayState: boolean;
+  onToggle: () => void;
 }
 
-const relayNames = ['relay1', 'relay2', 'relay3', 'relay4'];
+const RelayControl: React.FC<RelayControlProps> = React.memo(({ relayName, relayState, onToggle }) => (
+  <motion.div
+    initial={{ x: -50, opacity: 0 }}
+    animate={{ x: 0, opacity: 1 }}
+    transition={{ duration: 0.3 }}
+    className="flex items-center justify-between bg-gray-100 p-4 rounded-lg shadow-md w-80"
+  >
+    <h2 className="text-xl font-medium text-slate-700">{relayName}</h2>
+    <Switch
+      checked={relayState}
+      onChange={onToggle}
+      className={`${relayState ? 'bg-teal-600' : 'bg-slate-700'} relative inline-flex items-center h-6 rounded-full w-11 transition-colors`}
+    >
+      <span
+        className={`${relayState ? 'translate-x-6' : 'translate-x-1'} inline-block w-4 h-4 transform bg-white rounded-full transition-transform`}
+      />
+    </Switch>
+  </motion.div>
+));
 
-const RelayControl: React.FC = () => {
-  const [relays, setRelays] = useState<Record<string, RelayState>>(
-    relayNames.reduce(
-      (acc, relay) => ({
-        ...acc,
-        [relay]: { status: 'OFF', loading: false, error: null },
-      }),
-      {}
-    )
-  );
+RelayControl.displayName = 'RelayControl';
 
-  const sendRequest = async (relay: string, action: 'on' | 'off') => {
-    setRelays((prev) => ({
-      ...prev,
-      [relay]: { ...prev[relay], loading: true, error: null },
-    }));
+const Home: React.FC = () => {
+  const [relay1State, setRelay1State] = useState<boolean>(false);
+  const [relay2State, setRelay2State] = useState<boolean>(false);
+  const [relay3State, setRelay3State] = useState<boolean>(false);
+  const [relay4State, setRelay4State] = useState<boolean>(false);
 
-    try {
-      const response = await axios.get(`${ESP32_IP}/${relay}/${action}`);
-      const newStatus = action === 'on' ? 'ON' : 'OFF';
-      setRelays((prev) => ({
-        ...prev,
-        [relay]: { status: newStatus, loading: false, error: null },
-      }));
-      console.log(`Relay ${relay} turned ${newStatus}`);
-    } catch (error) {
-      setRelays((prev) => ({
-        ...prev,
-        [relay]: { ...prev[relay], loading: false, error: 'Failed to toggle relay' },
-      }));
-      console.error(`Failed to toggle ${relay}:`, error);
-    }
-  };
+  useEffect(() => {
+    const fetchRelayStates = async () => {
+      const [state1, state2, state3, state4] = await Promise.all([
+        realtimeService.getRelayState('relay1'),
+        realtimeService.getRelayState('relay2'),
+        realtimeService.getRelayState('relay3'),
+        realtimeService.getRelayState('relay4'),
+      ]);
+
+      setRelay1State(state1);
+      setRelay2State(state2);
+      setRelay3State(state3);
+      setRelay4State(state4);
+    };
+
+    fetchRelayStates();
+
+    const unsubscribes = [
+      realtimeService.listenToRelayState('relay1', setRelay1State),
+      realtimeService.listenToRelayState('relay2', setRelay2State),
+      realtimeService.listenToRelayState('relay3', setRelay3State),
+      realtimeService.listenToRelayState('relay4', setRelay4State),
+    ];
+
+    return () => {
+      unsubscribes.forEach((unsub: void) => {
+        if (typeof unsub === 'function') {
+          (unsub as () => void)(); // Unsubscribe from updates
+        }
+      });
+    };
+  }, []);
+
+  const toggleRelay = useCallback(async (relay: string, currentState: boolean) => {
+    await realtimeService.setRelayState(relay, !currentState);
+  }, []);
 
   return (
-    <div className="flex flex-col items-center space-y-6 p-6">
-      <h1 className="text-3xl font-bold">ESP32 Relay Control</h1>
-      <div className="grid grid-cols-2 gap-6">
-        {relayNames.map((relay) => (
-          <div
-            key={relay}
-            className="flex flex-col items-center p-4 border rounded-lg shadow-md w-64"
-          >
-            <h2 className="text-xl font-semibold mb-2">{relay.toUpperCase()}</h2>
-            <div className="flex space-x-2">
-              <button
-                className={`w-full py-2 rounded bg-green-500 text-white font-semibold`}
-                onClick={() => sendRequest(relay, 'on')}
-                disabled={relays[relay].status === 'ON' || relays[relay].loading}
-              >
-                {relays[relay].loading && relays[relay].status === 'OFF' ? 'Turning ON...' : 'Turn ON'}
-              </button>
-              <button
-                className={`w-full py-2 rounded bg-red-500 text-white font-semibold`}
-                onClick={() => sendRequest(relay, 'off')}
-                disabled={relays[relay].status === 'OFF' || relays[relay].loading}
-              >
-                {relays[relay].loading && relays[relay].status === 'ON' ? 'Turning OFF...' : 'Turn OFF'}
-              </button>
-            </div>
-            {relays[relay].error && (
-              <p className="text-red-500 mt-2">{relays[relay].error}</p>
-            )}
-            <p className="mt-2">
-              Status:{' '}
-              <span
-                className={`font-semibold ${
-                  relays[relay].status === 'ON' ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {relays[relay].status}
-              </span>
-            </p>
-          </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex flex-col items-center justify-center min-h-screen py-2"
+    >
+      <h1 className="text-4xl font-bold mb-8 text-">Water Control</h1>
+      <div className="grid grid-cols-1 gap-8">
+        {[
+          { id: 'relay1', state: relay1State },
+          { id: 'relay2', state: relay2State },
+          { id: 'relay3', state: relay3State },
+          { id: 'relay4', state: relay4State },
+        ].map((relay, index) => (
+          <RelayControl
+            key={relay.id}
+            relayName={`Water Zone ${index + 1}`}
+            relayState={relay.state}
+            onToggle={() => toggleRelay(relay.id, relay.state)}
+          />
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-export default RelayControl;
+export default Home;
